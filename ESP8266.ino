@@ -427,6 +427,7 @@ void handleRoot() {
   html += "<title>Smart Parking System Monitor</title>";
   html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
   html += "<style>";
+  // Existing CSS styles (unchanged)
   html += "body { font-family: Arial, sans-serif; margin: 0 auto; max-width: 1000px; padding: 20px; background-color: #f0f0f0; }";
   html += "h1, h2 { color: #333; text-align: center; }";
   html += ".card { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }";
@@ -461,22 +462,43 @@ void handleRoot() {
   html += ".log-entry.status-timeout { border-left-color: #d9534f; }";
   html += ".log-entry.status-newentry { border-left-color: #28a745; }";
   html += ".log-entry.status-logged { border-left-color: #007bff; }";
+
+  // New CSS for tabs
+  html += ".tab { overflow: hidden; border: 1px solid #ccc; background-color: #f1f1f1; }";
+  html += ".tab button { background-color: inherit; float: left; border: none; outline: none; cursor: pointer; padding: 14px 16px; transition: 0.3s; font-size: 17px; }";
+  html += ".tab button:hover { background-color: #ddd; }";
+  html += ".tab button.active { background-color: #ccc; }";
+  html += ".tabcontent { display: none; padding: 6px 12px; border: 1px solid #ccc; border-top: none; }";
+
+  // New CSS for centering password input and button
+  html += ".admin-login-center { display: flex; flex-direction: column; align-items: center; justify-content: center; }";
+  html += ".admin-login-center input { width: 60%; max-width: 300px; margin-bottom: 10px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; text-align: center; }";
+  html += ".admin-login-center button { width: 60%; max-width: 150px; }";
+
+  // CSS for the QR Code Modal
+  html += ".modal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.7); }";
+  html += ".modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 400px; text-align: center; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }";
+  html += ".close { color: #aaa; float: right; font-size: 28px; font-weight: bold; }";
+  html += ".close:hover, .close:focus { color: black; text-decoration: none; cursor: pointer; }";
+  html += ".modal-content img { max-width: 100%; height: auto; border-radius: 5px; }";
+
   html += "</style>";
   html += "</head><body>";
   html += "<h1>Smart Parking System Monitor</h1>";
 
+  // Tab buttons
+  html += "<div class='tab'>";
+  html += "<button class='tablinks active' onclick=\"openTab(event, 'Dashboard')\">Dashboard</button>";
+  html += "<button class='tablinks' onclick=\"openTab(event, 'AdminPanel')\">Admin Panel</button>";
+  html += "</div>";
+
+  // Dashboard Tab Content
+  html += "<div id='Dashboard' class='tabcontent' style='display:block;'>";
   html += "<div class='card'>";
   html += "<h2>System Status</h2>";
   html += "<p>Parking Status: <span id='parkingStatusText' class='status'></span></p>";
   html += "<p>Empty Slot Numbers: <span id='emptySlotsText'></span></p>";
   html += "<p>Filled Slot Numbers: <span id='filledSlotsText'></span></p>";
-  html += "</div>";
-
-  html += "<div class='card'>";
-  html += "<h2>Manual Gate Control</h2>";
-  html += "<form action='/open-gate' method='POST' style='text-align:center;'>";
-  html += "<button type='submit' class='button'>Open Entry Gate Manually</button>";
-  html += "</form>";
   html += "</div>";
 
   html += "<div class='card'>";
@@ -491,10 +513,27 @@ void handleRoot() {
   html += "<h2>Car Movement History</h2>";
   html += "<div class='log-container'>";
   html += "<table id='carHistoryTable'>";
-  html += "<thead><tr><th>Car UID</th><th>Entry Time</th><th>Exit Time</th><th>Status</th><th>Cost</th></tr></thead>";
+  html += "<thead><tr><th>Car UID</th><th>Entry Time</th><th>Exit Time</th><th>Status</th><th>Cost</th><th>Payment</th></tr></thead>"; // Added Payment column
   html += "<tbody></tbody>";
   html += "</table>";
   html += "</div>";
+  html += "</div>";
+  html += "</div>"; // End Dashboard tab content
+
+  // Admin Panel Tab Content
+  html += "<div id='AdminPanel' class='tabcontent'>";
+  html += "<div class='card admin-login-center'>"; // Added admin-login-center class
+  html += "<h2>Admin Login</h2>";
+  html += "<input type='password' id='adminPassword' placeholder='Enter password'>";
+  html += "<button class='button' onclick='checkPassword()'>Login</button>";
+  html += "</div>";
+
+  html += "<div id='adminContent' style='display:none;'>"; // Content to be shown after login
+  html += "<div class='card'>";
+  html += "<h2>Manual Gate Control</h2>";
+  html += "<form action='/open-gate' method='POST' style='text-align:center;'>";
+  html += "<button type='submit' class='button'>Open Entry Gate Manually</button>";
+  html += "</form>";
   html += "</div>";
 
   html += "<div class='card'>";
@@ -502,10 +541,85 @@ void handleRoot() {
   html += "<div id='accessLogContainer' class='log-container'>";
   html += "</div>";
   html += "</div>";
+  html += "</div>"; // End adminContent
+  html += "</div>"; // End AdminPanel tab content
 
   html += "<p style='text-align: center; color: #666; font-size: 0.9em;'>ESP8266 Time: <span id='esp32Time'></span> | Hostname: smartparking.local</p>";
+
+  // QR Code Modal
+  html += "<div id='qrCodeModal' class='modal'>";
+  html += "<div class='modal-content'>";
+  html += "<span class='close' onclick='closeModal()'>&times;</span>";
+  html += "<h2>Scan to Pay</h2>";
+  html += "<img src='https://github.com/koushikbiswasarko/Parking/blob/a3d27bfb4a979b76b9f18124d4aa29148562f28e/01318557547.jpg?raw=true' alt='Payment QR Code'>";
+  html += "<p>Please scan the QR code to complete your payment.</p>";
+  html += "</div>";
+  html += "</div>";
+
   html += "<script>";
   html += R"rawliteral(
+    const ADMIN_PASSWORD = "Arko"; // Hardcoded password
+    const qrCodeModal = document.getElementById('qrCodeModal');
+
+    function openTab(evt, tabName) {
+      var i, tabcontent, tablinks;
+      tabcontent = document.getElementsByClassName("tabcontent");
+      for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+      }
+      tablinks = document.getElementsByClassName("tablinks");
+      for (i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
+      }
+      document.getElementById(tabName).style.display = "block";
+      evt.currentTarget.className += " active";
+
+      // If opening AdminPanel, check if already logged in
+      if (tabName === 'AdminPanel') {
+        const adminContent = document.getElementById('adminContent');
+        const adminPasswordInput = document.getElementById('adminPassword');
+        if (sessionStorage.getItem('loggedInAdmin') === 'true') {
+          adminContent.style.display = 'block';
+          adminPasswordInput.style.display = 'none'; // Hide password input
+        } else {
+          adminContent.style.display = 'none';
+          adminPasswordInput.style.display = 'block'; // Show password input
+          adminPasswordInput.value = ''; // Clear password field
+        }
+      }
+    }
+
+    function checkPassword() {
+      const passwordInput = document.getElementById('adminPassword');
+      const adminContent = document.getElementById('adminContent');
+      if (passwordInput.value === ADMIN_PASSWORD) {
+        adminContent.style.display = 'block';
+        passwordInput.style.display = 'none'; // Hide password input after successful login
+        sessionStorage.setItem('loggedInAdmin', 'true'); // Store login state
+        alert('Access Granted!');
+        updateData(); // Refresh data for admin panel
+      } else {
+        alert('Incorrect password!');
+        adminContent.style.display = 'none';
+        sessionStorage.setItem('loggedInAdmin', 'false');
+      }
+    }
+
+    function showQrCode() {
+      qrCodeModal.style.display = "block";
+    }
+
+    function closeModal() {
+      qrCodeModal.style.display = "none";
+    }
+
+    // Close the modal if the user clicks outside of it
+    window.onclick = function(event) {
+      if (event.target == qrCodeModal) {
+        qrCodeModal.style.display = "none";
+      }
+    }
+
     async function updateData() {
       try {
         const response = await fetch('/data');
@@ -560,45 +674,63 @@ void handleRoot() {
                     row.insertCell().textContent = entry.exitTimestamp === "" ? "-" : entry.exitTimestamp;
                     row.insertCell().innerHTML = statusText;
                     row.insertCell().textContent = costText;
+
+                    const paymentCell = row.insertCell();
+                    if (!entry.isActive && entry.cost > 0) { // Show payment button only if car has exited and has a cost
+                        const payButton = document.createElement('button');
+                        payButton.textContent = 'Pay';
+                        payButton.className = 'button';
+                        payButton.style.padding = '5px 10px';
+                        payButton.style.fontSize = '0.9em';
+                        payButton.onclick = showQrCode;
+                        paymentCell.appendChild(payButton);
+                    } else {
+                        paymentCell.textContent = '-';
+                    }
                 }
             } else {
                 const row = carHistoryTableBody.insertRow();
                 const cell = row.insertCell();
-                cell.colSpan = 5;
+                cell.colSpan = 6; // Adjusted colspan to 6 for the new column
                 cell.textContent = 'No car movement history yet.';
             }
         }
 
-        const accessLogContainer = document.getElementById('accessLogContainer');
-        if (accessLogContainer) {
-            accessLogContainer.innerHTML = '';
-            if (data.logEntries && data.logEntries.length > 0) {
-                data.logEntries.forEach(logEntry => {
-                    if (logEntry.timestamp !== "") {
-                        let statusClass = logEntry.status.toLowerCase().replace(/ /g, '');
-                        if (statusClass === "newentry") statusClass = "newentry";
-                        else if (statusClass === "logged") statusClass = "logged";
+        // Only update logs if admin content is visible
+        const adminContent = document.getElementById('adminContent');
+        if (adminContent && adminContent.style.display === 'block') {
+          const accessLogContainer = document.getElementById('accessLogContainer');
+          if (accessLogContainer) {
+              accessLogContainer.innerHTML = '';
+              if (data.logEntries && data.logEntries.length > 0) {
+                  data.logEntries.forEach(logEntry => {
+                      if (logEntry.timestamp !== "") {
+                          let statusClass = logEntry.status.toLowerCase().replace(/ /g, '');
+                          if (statusClass === "newentry") statusClass = "newentry";
+                          else if (statusClass === "logged") statusClass = "logged";
 
-                        const logDiv = document.createElement('div');
-                        logDiv.className = `log-entry status-${statusClass}`;
-                        let logHtml = `<strong>${logEntry.timestamp}</strong><br>`;
-                        logHtml += `<strong>Event:</strong> ${logEntry.messageType} `;
-                        logHtml += `<strong>Action:</strong> ${logEntry.action} `;
-                        logHtml += `<strong>Status:</strong> <span class='${statusClass}'>${logEntry.status}</span>`;
-                        if (logEntry.uid !== "") {
-                            logHtml += `<br><strong>Car UID:</strong> ${logEntry.uid}`;
-                        }
-                        if (logEntry.details !== "") {
-                            logHtml += `<br><strong>Details:</strong> ${logEntry.details}`;
-                        }
-                        logDiv.innerHTML = logHtml;
-                        accessLogContainer.appendChild(logDiv);
-                    }
-                });
-            } else {
-                accessLogContainer.innerHTML = '<p>No log entries yet.</p>';
-            }
+                          const logDiv = document.createElement('div');
+                          logDiv.className = `log-entry status-${statusClass}`;
+                          let logHtml = `<strong>${logEntry.timestamp}</strong><br>`;
+                          logHtml += `<strong>Event:</strong> ${logEntry.messageType} `;
+                          logHtml += `<strong>Action:</strong> ${logEntry.action} `;
+                          logHtml += `<strong>Status:</strong> <span class='${statusClass}'>${logEntry.status}</span>`;
+                          if (logEntry.uid !== "") {
+                              logHtml += `<br><strong>Car UID:</strong> ${logEntry.uid}`;
+                          }
+                          if (logEntry.details !== "") {
+                              logHtml += `<br><strong>Details:</strong> ${logEntry.details}`;
+                          }
+                          logDiv.innerHTML = logHtml;
+                          accessLogContainer.appendChild(logDiv);
+                      }
+                  });
+              } else {
+                  accessLogContainer.innerHTML = '<p>No log entries yet.</p>';
+              }
+          }
         }
+
 
         const esp32TimeSpan = document.getElementById('esp32Time');
         if (esp32TimeSpan) {
@@ -625,7 +757,7 @@ void handleRoot() {
                 try {
                     const response = await fetch('/open-gate', { method: 'POST' });
                     if (response.ok) {
-
+                        alert('Gate open command sent successfully!');
                     } else {
                         alert('Failed to open gate. Server responded with status: ' + response.status);
                     }
@@ -781,7 +913,6 @@ void loop() {
         serialBuffer = "";
       }
     }
-    yield();
   }
   yield();
 
